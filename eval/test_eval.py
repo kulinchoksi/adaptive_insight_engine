@@ -30,7 +30,7 @@ def load_env():
 async def test_eval_simple():
     """Test the agent's basic ability via a session file."""
     await AgentEvaluator.evaluate(
-        "data_science",
+        "agents",
         os.path.join(os.path.dirname(__file__), "eval_data/simple.test.json"),
         num_runs=1,
     )

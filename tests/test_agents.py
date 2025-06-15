@@ -12,105 +12,275 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test cases for the analytics agent and its sub-agents."""
+"""Test cases for the Adaptive Insight Engine multi-agent system."""
 
 import os
-import sys
 import pytest
-import unittest
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from unittest.mock import Mock, patch
+from typing import Generator
 
 from google.genai import types
+from google.adk.agents import LlmAgent, SequentialAgent, Agent
 from google.adk.artifacts import InMemoryArtifactService
 from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
+from google.adk.sessions import InMemorySessionService, Session
+from google.adk.events import Event, EventActions
 
-from data_science.agent import root_agent
-from data_science.sub_agents.bqml.agent import root_agent as bqml_agent
-from data_science.sub_agents.bigquery.agent import database_agent
+from agents.root_agent import root_agent
+from agents.workflow.agent import workflow_orchestrator_agent
+from agents.interaction.agent import user_interaction_agent
 
-session_service = InMemorySessionService()
-artifact_service = InMemoryArtifactService()
+# Test fixtures
+@pytest.fixture
+def session_service() -> InMemorySessionService:
+    """Create an in-memory session service for testing."""
+    return InMemorySessionService()
 
+@pytest.fixture
+def artifact_service() -> InMemoryArtifactService:
+    """Create an in-memory artifact service for testing."""
+    return InMemoryArtifactService()
 
-class TestAgents(unittest.TestCase):
-    """Test cases for the analytics agent and its sub-agents."""
+@pytest.fixture
+def runner(session_service: InMemorySessionService, artifact_service: InMemoryArtifactService) -> Runner:
+    """Create a test runner with in-memory services."""
+    return Runner(
+        app_name="AdaptiveInsightEngine",
+        agent=None,
+        artifact_service=artifact_service,
+        session_service=session_service,
+    )
 
-    def setUp(self):
-        """Set up for test methods."""
-        self.session = session_service.create_session(
-            app_name="DataAgent",
-            user_id="test_user",
+@pytest.fixture
+def session(session_service: InMemorySessionService) -> Session:
+    """Create a test session."""
+    return session_service.create_session(
+        app_name="AdaptiveInsightEngine",
+        user_id="test_user",
+    )
+
+@pytest.fixture
+def mock_llm() -> Generator[Mock, None, None]:
+    """Mock the LLM responses for testing."""
+    with patch("google.adk.agents.LlmAgent._call_model") as mock:
+        # Default mock response
+        mock.return_value = types.GenerateContentResponse(
+            candidates=[
+                types.Candidate(
+                    content=types.Content(
+                        parts=[types.Part(text="Mock LLM response")]
+                    )
+                )
+            ]
         )
-        self.user_id = "test_user"
-        self.session_id = self.session.id
+        yield mock
 
-        self.runner = Runner(
-            app_name="DataAgent",
-            agent=None,
-            artifact_service=artifact_service,
-            session_service=session_service,
+class TestAgentHierarchy:
+    """Test the agent hierarchy and parent-child relationships."""
+
+    def test_root_agent_has_correct_sub_agents(self):
+        """Test that root agent has the expected sub-agents."""
+        assert isinstance(root_agent, Agent)
+        assert len(root_agent.sub_agents) == 2
+        assert any(isinstance(agent, LlmAgent) and agent.name == "user_interaction_agent" 
+                  for agent in root_agent.sub_agents)
+        assert any(isinstance(agent, SequentialAgent) and agent.name == "workflow_orchestrator_agent" 
+                  for agent in root_agent.sub_agents)
+
+    def test_workflow_orchestrator_agent_type(self):
+        """Test that workflow orchestrator is a SequentialAgent."""
+        assert isinstance(workflow_orchestrator_agent, SequentialAgent)
+
+    def test_user_interaction_agent_type(self):
+        """Test that user interaction agent is an LlmAgent."""
+        assert isinstance(user_interaction_agent, LlmAgent)
+
+class TestAgentCommunication:
+    """Test agent communication and state sharing."""
+
+    @pytest.mark.asyncio
+    async def test_agent_state_sharing(self, runner: Runner, session: Session, mock_llm: Mock):
+        """Test that agents can share state through the session."""
+        # Configure mock for specific test
+        mock_llm.return_value = types.GenerateContentResponse(
+            candidates=[
+                types.Candidate(
+                    content=types.Content(
+                        parts=[types.Part(text="Test state sharing")]
+                    )
+                )
+            ]
         )
 
-    def _run_agent(self, agent, query):
-        """Helper method to run an agent and get the final response."""
-        self.runner.agent = agent
-        content = types.Content(role="user", parts=[types.Part(text=query)])
+        # Set initial state
+        session.state["test_key"] = "test_value"
+        
+        # Run agent
+        runner.agent = user_interaction_agent
+        content = types.Content(role="user", parts=[types.Part(text="Test query")])
         events = list(
-            self.runner.run(
-                user_id=self.user_id, session_id=self.session_id, new_message=content
+            runner.run(
+                user_id="test_user",
+                session_id=session.id,
+                new_message=content
             )
         )
 
-        last_event = events[-1]
-        final_response = "".join(
-            [part.text for part in last_event.content.parts if part.text]
+        # Verify state was preserved
+        assert session.state["test_key"] == "test_value"
+
+    @pytest.mark.asyncio
+    async def test_agent_transfer(self, runner: Runner, session: Session, mock_llm: Mock):
+        """Test that agents can transfer control to each other."""
+        # Configure mock for specific test
+        mock_llm.return_value = types.GenerateContentResponse(
+            candidates=[
+                types.Candidate(
+                    content=types.Content(
+                        parts=[types.Part(text="Transfer to workflow orchestrator")]
+                    )
+                )
+            ]
         )
-        return final_response
 
+        # Run root agent
+        runner.agent = root_agent
+        content = types.Content(role="user", parts=[types.Part(text="Analyze sales data")])
+        events = list(
+            runner.run(
+                user_id="test_user",
+                session_id=session.id,
+                new_message=content
+            )
+        )
 
-    @pytest.mark.db_agent
-    def test_db_agent_can_handle_env_query(self):
-        """Test the db_agent with a query from environment variable."""
-        query = "what countries exist in the train table?"
-        response = self._run_agent(database_agent, query)
-        print(response)
-        # self.assertIn("Canada", response)
-        self.assertIsNotNone(response)
+        # Verify transfer occurred
+        assert any(
+            event.actions and event.actions.transfer_to_agent == "workflow_orchestrator_agent"
+            for event in events
+        )
 
-    @pytest.mark.ds_agent
-    def test_ds_agent_can_be_called_from_root(self):
-        """Test the ds_agent from the root agent."""
-        query = "plot the most selling category"
-        response = self._run_agent(root_agent, query)
-        print(response)
-        self.assertIsNotNone(response)
+class TestWorkflowPatterns:
+    """Test different workflow patterns using SequentialAgent."""
 
-    @pytest.mark.bqml
-    def test_bqml_agent_can_check_for_models(self):
-        """Test that the bqml_agent can check for existing models."""
-        query = "Are there any existing models in the dataset?"
-        response = self._run_agent(bqml_agent, query)
-        print(response)
-        self.assertIsNotNone(response)
+    @pytest.mark.asyncio
+    async def test_sequential_execution(self, runner: Runner, session: Session, mock_llm: Mock):
+        """Test that workflow orchestrator executes agents in sequence."""
+        # Configure mock for specific test
+        mock_llm.return_value = types.GenerateContentResponse(
+            candidates=[
+                types.Candidate(
+                    content=types.Content(
+                        parts=[types.Part(text="Sequential execution test")]
+                    )
+                )
+            ]
+        )
 
-    @pytest.mark.bqml
-    def test_bqml_agent_can_execute_code(self):
-        """Test that the bqml_agent can execute BQML code."""
-        query = """
-    I want to train a BigQuery ML model on the sales_train_validation data for sales prediction.
-    Please show me an execution plan. 
-    """
-        response = self._run_agent(bqml_agent, query)
-        print(response)
-        self.assertIsNotNone(response)
+        # Run workflow orchestrator
+        runner.agent = workflow_orchestrator_agent
+        content = types.Content(role="user", parts=[types.Part(text="Run analysis pipeline")])
+        events = list(
+            runner.run(
+                user_id="test_user",
+                session_id=session.id,
+                new_message=content
+            )
+        )
 
+        # Verify sequential execution
+        agent_execution_order = [
+            event.author for event in events 
+            if event.author in [agent.name for agent in workflow_orchestrator_agent.sub_agents]
+        ]
+        assert len(agent_execution_order) > 0
+        # Add more specific assertions about execution order if needed
+
+    @pytest.mark.asyncio
+    async def test_workflow_error_handling(self, runner: Runner, session: Session, mock_llm: Mock):
+        """Test that workflow orchestrator handles errors gracefully."""
+        # Configure mock to simulate an error
+        mock_llm.side_effect = Exception("Simulated error")
+
+        # Run workflow orchestrator
+        runner.agent = workflow_orchestrator_agent
+        content = types.Content(role="user", parts=[types.Part(text="Test error handling")])
+        
+        with pytest.raises(Exception) as exc_info:
+            list(
+                runner.run(
+                    user_id="test_user",
+                    session_id=session.id,
+                    new_message=content
+                )
+            )
+        
+        assert "Simulated error" in str(exc_info.value)
+
+class TestUserInteraction:
+    """Test user interaction agent functionality."""
+
+    @pytest.mark.asyncio
+    async def test_query_understanding(self, runner: Runner, session: Session, mock_llm: Mock):
+        """Test that user interaction agent can understand and process queries."""
+        # Configure mock for specific test
+        mock_llm.return_value = types.GenerateContentResponse(
+            candidates=[
+                types.Candidate(
+                    content=types.Content(
+                        parts=[types.Part(text="Query understood and processed")]
+                    )
+                )
+            ]
+        )
+
+        # Run user interaction agent
+        runner.agent = user_interaction_agent
+        content = types.Content(role="user", parts=[types.Part(text="What were our top products last month?")])
+        events = list(
+            runner.run(
+                user_id="test_user",
+                session_id=session.id,
+                new_message=content
+            )
+        )
+
+        # Verify response
+        assert any(
+            event.content and "Query understood" in event.content.parts[0].text
+            for event in events
+        )
+
+    @pytest.mark.asyncio
+    async def test_clarification_requests(self, runner: Runner, session: Session, mock_llm: Mock):
+        """Test that user interaction agent can request clarification when needed."""
+        # Configure mock to simulate need for clarification
+        mock_llm.return_value = types.GenerateContentResponse(
+            candidates=[
+                types.Candidate(
+                    content=types.Content(
+                        parts=[types.Part(text="Could you clarify which time period you're interested in?")]
+                    )
+                )
+            ]
+        )
+
+        # Run user interaction agent
+        runner.agent = user_interaction_agent
+        content = types.Content(role="user", parts=[types.Part(text="Show me the sales")])
+        events = list(
+            runner.run(
+                user_id="test_user",
+                session_id=session.id,
+                new_message=content
+            )
+        )
+
+        # Verify clarification request
+        assert any(
+            event.content and "clarify" in event.content.parts[0].text.lower()
+            for event in events
+        )
 
 if __name__ == "__main__":
-    unittest.main()
-
-    # testagent = TestAgents
-    # testagent.setUp(testagent)
-    # testagent.test_root_agent_can_list_tools(testagent)
-    # testagent.test_db_agent_can_handle_env_query(testagent)
+    pytest.main()
