@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 from utils.logger import configure_logging
 import structlog
-from agents.root_agent import root_agent
+from agents.agent import root_agent
 import os
 
 # Placeholder for agent import

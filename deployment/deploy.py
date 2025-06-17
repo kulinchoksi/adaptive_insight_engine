@@ -19,7 +19,7 @@ import os
 
 import vertexai
 from absl import app, flags
-from agents.root_agent import root_agent
+from agents.agent import root_agent
 from dotenv import load_dotenv
 from google.api_core import exceptions as google_exceptions
 from google.cloud import storage

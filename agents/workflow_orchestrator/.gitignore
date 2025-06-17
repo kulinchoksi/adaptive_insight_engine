@@ -1,0 +1,9 @@
+.env
+__pycache__/
+agents/__pycache__/
+interfaces/__pycache__/
+utils/__pycache__/
+data/
+db/
+.secrets/
+

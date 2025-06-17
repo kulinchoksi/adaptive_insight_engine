@@ -26,7 +26,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService, Session
 from google.adk.events import Event, EventActions
 
-from agents.root_agent import root_agent
+from agents.agent import root_agent
 from agents.workflow.agent import workflow_orchestrator_agent
 from agents.interaction.agent import user_interaction_agent
 
