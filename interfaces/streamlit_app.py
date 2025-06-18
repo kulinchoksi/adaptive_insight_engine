@@ -5,12 +5,12 @@ import structlog
 from dotenv import load_dotenv
 from google.genai import types
 from utils.logger import configure_logging
-from agents.agent import root_agent
+from adaptive_insight_engine.agent import root_agent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 
 # Placeholder for agent import
-# from agents.user_interaction_agent import UserInteractionAgent
+# from adaptive_insight_engine.user_interaction_agent import UserInteractionAgent
 
 def main():
     load_dotenv()

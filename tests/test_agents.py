@@ -25,9 +25,9 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService, Session
 from google.adk.events import Event, EventActions
 
-from agents.agent import root_agent
-from agents.workflow_orchestrator.agent import workflow_orchestrator_agent
-from agents.user_interaction.agent import user_interaction_agent
+from adaptive_insight_engine.agent import root_agent
+from adaptive_insight_engine.workflow_orchestrator.agent import workflow_orchestrator_agent
+from adaptive_insight_engine.user_interaction.agent import user_interaction_agent
 
 # Test fixtures
 @pytest.fixture

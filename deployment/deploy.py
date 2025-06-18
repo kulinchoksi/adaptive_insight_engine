@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Deployment script for Data Science agent."""
+"""Deployment script for Adaptive Insight Engine agents."""
 
 import logging
 import os
 
 import vertexai
 from absl import app, flags
-from agents.agent import root_agent
+from adaptive_insight_engine.agent import root_agent
 from dotenv import load_dotenv
 from google.api_core import exceptions as google_exceptions
 from google.cloud import storage
@@ -38,7 +38,8 @@ flags.DEFINE_bool("create", False, "Create a new agent.")
 flags.DEFINE_bool("delete", False, "Delete an existing agent.")
 flags.mark_bool_flags_as_mutual_exclusive(["create", "delete"])
 
-AGENT_WHL_FILE = "agents-0.1-py3-none-any.whl"
+DEPLOYMENT_DIR = os.path.dirname(os.path.abspath(__file__))
+AGENT_WHL_FILE = os.path.join(DEPLOYMENT_DIR, "adaptive_insight_engine-0.1.0-py3-none-any.whl")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -126,7 +127,7 @@ def create(env_vars: dict[str, str]) -> None:
     """Creates and deploys the agent."""
     adk_app = AdkApp(
         agent=root_agent,
-        enable_tracing=False,
+        enable_tracing=True,
     )
 
     if not os.path.exists(AGENT_WHL_FILE):
@@ -136,10 +137,11 @@ def create(env_vars: dict[str, str]) -> None:
 
     logger.info("Using agent wheel file: %s", AGENT_WHL_FILE)
 
+    wheel_filename = os.path.basename(AGENT_WHL_FILE)
     remote_agent = agent_engines.create(
         adk_app,
-        requirements=[AGENT_WHL_FILE],
-        extra_packages=[AGENT_WHL_FILE],
+        requirements=[wheel_filename],
+        extra_packages=[wheel_filename],
         env_vars=env_vars
     )
     logger.info("Created remote agent: %s", remote_agent.resource_name)
@@ -187,17 +189,21 @@ def main(argv: list[str]) -> None:  # pylint: disable=unused-argument
     )
     # Don't set "GOOGLE_CLOUD_PROJECT" or "GOOGLE_CLOUD_LOCATION"
     # when deploying to Agent Engine. Those are set by the backend.
-    env_vars["ROOT_AGENT_MODEL"] = os.getenv("ROOT_AGENT_MODEL")
-    env_vars["ANALYTICS_AGENT_MODEL"] = os.getenv("ANALYTICS_AGENT_MODEL")
-    env_vars["BASELINE_NL2SQL_MODEL"] = os.getenv("BASELINE_NL2SQL_MODEL")
-    env_vars["BIGQUERY_AGENT_MODEL"] = os.getenv("BIGQUERY_AGENT_MODEL")
-    env_vars["BQML_AGENT_MODEL"] = os.getenv("BQML_AGENT_MODEL")
-    env_vars["CHASE_NL2SQL_MODEL"] = os.getenv("CHASE_NL2SQL_MODEL")
-    env_vars["BQ_DATASET_ID"] = os.getenv("BQ_DATASET_ID")
-    env_vars["BQ_PROJECT_ID"] = os.getenv("BQ_PROJECT_ID")
-    env_vars["BQML_RAG_CORPUS_NAME"] = os.getenv("BQML_RAG_CORPUS_NAME")
-    env_vars["CODE_INTERPRETER_EXTENSION_NAME"] = os.getenv(
-        "CODE_INTERPRETER_EXTENSION_NAME")
+    def set_env_var_if_exists(env_vars, key):
+        value = os.getenv(key)
+        if value is not None:
+            env_vars[key] = value
+
+    set_env_var_if_exists(env_vars, "ROOT_AGENT_MODEL")
+    set_env_var_if_exists(env_vars, "ANALYTICS_AGENT_MODEL")
+    set_env_var_if_exists(env_vars, "BASELINE_NL2SQL_MODEL")
+    set_env_var_if_exists(env_vars, "BIGQUERY_AGENT_MODEL")
+    set_env_var_if_exists(env_vars, "BQML_AGENT_MODEL")
+    set_env_var_if_exists(env_vars, "CHASE_NL2SQL_MODEL")
+    set_env_var_if_exists(env_vars, "BQ_DATASET_ID")
+    set_env_var_if_exists(env_vars, "BQ_PROJECT_ID")
+    set_env_var_if_exists(env_vars, "BQML_RAG_CORPUS_NAME")
+    set_env_var_if_exists(env_vars, "CODE_INTERPRETER_EXTENSION_NAME")
     env_vars["NL2SQL_METHOD"] = os.getenv("NL2SQL_METHOD")
 
     logger.info("Using PROJECT: %s", project_id)

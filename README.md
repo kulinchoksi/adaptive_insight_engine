@@ -20,7 +20,7 @@ AIE is a modular, extensible GenAI multi-agent system built with Google Cloud's 
 ```
 adaptive_insight_engine/
 │
-├── agents/                  # All agent classes (UserInteractionAgent, etc.)
+├── adaptive_insight_engine/                  # All agent classes (UserInteractionAgent, etc.)
 ├── tools/                   # Data processing, analysis, simulation tools
 ├── interfaces/              # Web, REST, MCP, A2A protocol handlers
 ├── utils/                   # Shared utilities (logging, config, etc.)
@@ -73,7 +73,7 @@ adaptive_insight_engine/
 
 ## Extensibility & Customization
 
-- **Add new agents**: Create a new class in `agents/` and register it in the orchestrator.
+- **Add new agents**: Create a new class in `adaptive_insight_engine/` and register it in the orchestrator.
 - **Add new tools**: Implement in `tools/` and expose to agents as needed.
 - **Integrate new data sources**: Extend `DataIngestionAgent` and `ExternalContextAgent`.
 - **Support new protocols**: Implement handlers in `interfaces/`.

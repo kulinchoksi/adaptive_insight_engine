@@ -11,7 +11,7 @@ from google.adk.runners import Runner
 from google.adk.runners import InMemorySessionService
 from google.genai.types import Blob, Content, Part
 
-from agents.agent import root_agent
+from adaptive_insight_engine.agent import root_agent
 from utils.logger import configure_logging
 import structlog
 
