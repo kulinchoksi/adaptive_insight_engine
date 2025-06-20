@@ -1,0 +1,11 @@
+# Adaptive Insight Engine - Monorepo Root Requirements
+streamlit
+fastapi
+uvicorn
+structlog
+python-dotenv
+google-cloud-logging
+google-adk
+requests
+google-auth
+# Add any other dependencies required by your agents or utilities
