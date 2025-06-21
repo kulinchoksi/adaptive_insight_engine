@@ -1886,3 +1886,6 @@ websockets==15.0.1 ; python_version >= "3.9" and python_full_version != "3.9.7" 
 zipp==3.23.0 ; python_version >= "3.9" and python_full_version != "3.9.7" and python_version < "3.14" \
     --hash=sha256:071652d6115ed432f5ce1d34c336c0adfd6a884660d1e9712a256d3d3bd4b14e \
     --hash=sha256:a07157588a12518c9d4034df3fbbee09c814741a33ff63c05fa29d26a2404166
+
+# LLM provider flexibility
+litellm>=1.0.0
