@@ -8,9 +8,10 @@ from .sub_agents.query_understanding.agent import query_understanding_agent
 from .sub_agents.simulation.agent import simulation_agent
 from .sub_agents.insight_synthesis.agent import insight_synthesis_agent
 from .sub_agents.explanation_tracer.agent import explanation_tracer_agent
+from utils import llm_factory
 
 workflow_orchestrator_agent = Agent(
-    model=os.getenv("WORKFLOW_ORCHESTRATOR_AGENT_MODEL", "gemini-2.0-pro"),
+    model=llm_factory.create_llm_client("WORKFLOW_ORCHESTRATOR_AGENT_MODEL"),
     name="workflow_orchestrator_agent",
     instruction=return_instructions_workflow_orchestrator(),
     sub_agents=[

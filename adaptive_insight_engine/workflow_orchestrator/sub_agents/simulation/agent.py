@@ -4,6 +4,7 @@ import os
 from google.adk.agents import Agent
 from .prompts import return_instructions_simulation
 from adaptive_insight_engine.tools import run_simulation
+from utils import llm_factory
 
 class SimulationAgent:
     """
@@ -23,7 +24,7 @@ class SimulationAgent:
         }
 
 simulation_agent = Agent(
-    model=os.getenv("SIMULATION_AGENT_MODEL", "gemini-2.0-pro"),
+    model=llm_factory.create_llm_client("SIMULATION_AGENT_MODEL"),
     name="simulation_agent",
     instruction=return_instructions_simulation(),
     tools=[run_simulation],
