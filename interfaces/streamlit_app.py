@@ -57,9 +57,8 @@ def main():
     feature_toggle = st.sidebar.checkbox("Enable Contextualytics (external data enrichment)")
     narrative_toggle = st.sidebar.checkbox("Enable NarrativeAI (storytelling)")
     if st.sidebar.button("New Analysis"):
-        st.session_state.chat_history = []
-        st.session_state.session_id = os.urandom(8).hex()
-        st.rerun()
+        st.session_state.clear()
+        st.experimental_rerun()
 
     # --- Main Chat Area ---
     st.markdown("#### Conversation")
@@ -146,7 +145,17 @@ def main():
                         from utils.vertex_agent_rest import call_vertex_agent_rest
                         final_response_text = call_vertex_agent_rest(input_str)
                     return final_response_text
-                result = asyncio.run(get_agent_response())
+                from google.genai.errors import ClientError
+                try:
+                    result = asyncio.run(get_agent_response())
+                except ClientError as e:
+                    if "token count" in str(e) or "model only supports up to" in str(e):
+                        result = ("The data or prompt is too large for the AI model to process. "
+                                  "Please try with a smaller file, or start a new session if you want to analyze a new file.")
+                    else:
+                        result = f"An error occurred: {e}"
+                except Exception as e:
+                    result = f"An error occurred: {e}"
                 st.session_state.chat_history.append({'role': 'agent', 'text': result})
                 st.rerun()
 
