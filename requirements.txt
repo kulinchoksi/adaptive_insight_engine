@@ -10,3 +10,4 @@ requests
 google-auth
 # Add any other dependencies required by your agents or utilities
 litellm
+google-adk[extensions]
