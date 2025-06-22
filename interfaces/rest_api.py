@@ -124,17 +124,13 @@ async def analyze(
                 ).model_dump(),
             )
         mime_type = mime_type_map[ext]
-        import base64
-        if ext in ("csv", "pdf", "xlsx", "xls"):
-            encoded_content = base64.b64encode(file_content).decode("utf-8")
-        elif ext == "txt":
-            # Assume text file is utf-8 encoded
-            encoded_content = file_content.decode("utf-8")
-        else:
-            encoded_content = base64.b64encode(file_content).decode("utf-8")
-        # Only send the base64-encoded content as a text part for the agent's tool
         parts.append(Part.from_text(text=f"Uploaded file: {file.filename}"))
-        parts.append(Part.from_text(text=encoded_content))
+        parts.append(Part(
+            inline_data=Blob(
+                mime_type=mime_type,
+                data=file_content
+            )
+        ))
     content = Content(parts=parts)
 
     # --- Create Session (local only) ---

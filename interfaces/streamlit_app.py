@@ -130,10 +130,13 @@ def main():
                         if file_type not in mime_type_map:
                             st.error(f"Unsupported file type: .{file_type}. Only CSV, PDF, and TXT files are supported.")
                             return  # Prevent agent call
-                        import base64
-                        encoded_content = base64.b64encode(file_bytes).decode("utf-8")
                         parts.append(types.Part(text=f"Uploaded file: {file_name}"))
-                        parts.append(types.Part(text=encoded_content))
+                        parts.append(types.Part(
+                            inline_data=types.Blob(
+                                mime_type=mime_type_map[file_type],
+                                data=file_bytes
+                            )
+                        ))
                     content = types.Content(role="user", parts=parts)
                     final_response_text = "Agent did not produce a final response."
                     if hasattr(runner, "run_async"):
