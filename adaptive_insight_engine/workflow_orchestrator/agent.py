@@ -22,5 +22,5 @@ workflow_orchestrator_agent = Agent(
         insight_synthesis_agent,
         explanation_tracer_agent,
     ],
-    tools=[],  # Add orchestrator-level tools if needed
-) 
+    # No tools: rely on sub-agents for orchestration
+)

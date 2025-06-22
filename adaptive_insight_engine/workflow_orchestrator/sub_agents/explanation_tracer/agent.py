@@ -8,5 +8,4 @@ explanation_tracer_agent = Agent(
     name="explanation_tracer_agent",
     instruction=return_instructions_explanation_tracer(),
     tools=[trace_explanation],
-    # Optionally add before_agent_callback, generate_content_config, etc.
-) 
+)

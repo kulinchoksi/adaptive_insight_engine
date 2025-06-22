@@ -8,5 +8,4 @@ insight_synthesis_agent = Agent(
     name="insight_synthesis_agent",
     instruction=return_instructions_insight_synthesis(),
     tools=[synthesize_insights],
-    # Optionally add before_agent_callback, generate_content_config, etc.
-) 
+)

@@ -8,5 +8,4 @@ query_understanding_agent = Agent(
     name="query_understanding_agent",
     instruction=return_instructions_query_understanding(),
     tools=[understand_query],
-    # Optionally add before_agent_callback, generate_content_config, etc.
-) 
+)

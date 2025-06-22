@@ -5,7 +5,7 @@ import structlog
 from dotenv import load_dotenv
 from google.genai import types
 from utils.logger import configure_logging
-from adaptive_insight_engine.agent import root_agent
+from adaptive_insight_engine.agent import workflow_orchestrator_agent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 
@@ -26,7 +26,7 @@ def get_agent_runner():
     else:
         # Use local agent
         session_service = InMemorySessionService()
-        return Runner(agent=root_agent, app_name="AIE", session_service=session_service)
+        return Runner(agent=workflow_orchestrator_agent, app_name="AIE", session_service=session_service)
 
 def main():
     load_dotenv()
@@ -36,22 +36,121 @@ def main():
     st.title("Adaptive Insight Engine (AIE)")
     st.write("A modular, extensible GenAI multi-agent system.")
 
-    # File upload
-    uploaded_file = st.file_uploader("Upload your data file (CSV, Excel, PDF)", type=["csv", "xlsx", "xls", "pdf"])
-    file_type = None
-    if uploaded_file is not None:
-        file_type = os.path.splitext(uploaded_file.name)[-1].replace(".", "").lower()
+    st.markdown("""
+    ### How to use this app
+    - **Upload a file** (CSV, Excel, PDF), **enter a text query**, or **both**.
+    - Example 1: *Upload a sales.csv file and click Run Analysis to get sales insights.*
+    - Example 2: *Enter 'Analyze quarterly revenue trends' by providing relevant data in text and click Run Analysis.*
+    - Example 3: *Upload a file and enter 'Focus on Q4 data' for a targeted analysis.*
+    - **Analysis will only start when you provide clear, valid input.**
+    - If your input is unclear or missing, you'll see an error and can correct it before proceeding.
+    """)
 
-    # Parameter selection (example)
+    # --- Session State for Chat History ---
+    if 'chat_history' not in st.session_state:
+        st.session_state.chat_history = []  # Each item: {'role': 'user'|'agent', 'text': str, 'file': file or None}
+    if 'session_id' not in st.session_state:
+        st.session_state.session_id = os.urandom(8).hex()
+
+    # --- Sidebar Config ---
     st.sidebar.header("Configuration")
     feature_toggle = st.sidebar.checkbox("Enable Contextualytics (external data enrichment)")
     narrative_toggle = st.sidebar.checkbox("Enable NarrativeAI (storytelling)")
+    if st.sidebar.button("New Analysis"):
+        st.session_state.chat_history = []
+        st.session_state.session_id = os.urandom(8).hex()
+        st.rerun()
 
-    # Placeholder for follow-up query
-    followup_query = st.text_input("Ask a follow-up question (optional)")
+    # --- Main Chat Area ---
+    st.markdown("#### Conversation")
+    for msg in st.session_state.chat_history:
+        if msg['role'] == 'user':
+            with st.chat_message("user"):
+                if msg.get('file_name'):
+                    st.write(f"**User uploaded file:** {msg['file_name']}")
+                st.write(msg['text'])
+        else:
+            with st.chat_message("assistant"):
+                st.write(msg['text'])
 
-    # Results
+    # --- Input Area ---
+    with st.form(key="chat_input_form", clear_on_submit=True):
+        cols = st.columns([3, 2])
+        with cols[0]:
+            user_input = st.text_area("Enter your query or context (optional)", height=80, key="user_input")
+        with cols[1]:
+            uploaded_file = st.file_uploader("Upload a file (optional)", type=["csv", "xlsx", "xls", "pdf", "txt"], key="file_uploader")
+        submitted = st.form_submit_button("Send")
+
+    # --- Validation ---
+    input_is_valid = bool(user_input.strip() or uploaded_file)
+    if submitted:
+        if not input_is_valid:
+            st.warning("Please provide a file and/or enter a query before sending.")
+        else:
+            # Add user message to chat history
+            file_bytes = None
+            if uploaded_file is not None:
+                uploaded_file.seek(0)
+                file_bytes = uploaded_file.read()
+            msg = {'role': 'user', 'text': user_input.strip(), 'file_name': uploaded_file.name if uploaded_file else None, 'file_bytes': file_bytes}
+            st.session_state.chat_history.append(msg)
+            st.rerun()  # Rerun to show user message before agent response
+
+    # --- Agent Response Trigger ---
+    # Only trigger agent if last message is user and not yet answered
     runner = get_agent_runner()
+    if st.session_state.chat_history and st.session_state.chat_history[-1]['role'] == 'user':
+        last_msg = st.session_state.chat_history[-1]
+        # Only run agent if not already answered
+        if len(st.session_state.chat_history) < 2 or st.session_state.chat_history[-2]['role'] != 'agent':
+            with st.spinner("Agent is thinking..."):
+                # Prepare input
+                user_text = last_msg['text']
+                file_bytes = last_msg.get('file_bytes')
+                file_name = last_msg.get('file_name')
+                file_type = os.path.splitext(file_name)[-1].replace(".", "").lower() if file_name else None
+                async def get_agent_response():
+                    user_id = "user1"
+                    session_id = st.session_state.session_id
+                    app_name = "AIE"
+                    if hasattr(runner, "session_service"):
+                        await runner.session_service.create_session(app_name=app_name, user_id=user_id, session_id=session_id)
+                    parts = []
+                    if user_text:
+                        parts.append(types.Part(text=user_text))
+                    parts.append(types.Part(text=f"Feature Toggle: {feature_toggle}"))
+                    parts.append(types.Part(text=f"Narrative Toggle: {narrative_toggle}"))
+                    if file_bytes:
+                        # Map file extension to supported MIME type
+                        mime_type_map = {
+                            "csv": "text/csv",
+                            "pdf": "application/pdf",
+                            "txt": "text/plain"
+                        }
+                        if file_type not in mime_type_map:
+                            st.error(f"Unsupported file type: .{file_type}. Only CSV, PDF, and TXT files are supported.")
+                            return  # Prevent agent call
+                        import base64
+                        encoded_content = base64.b64encode(file_bytes).decode("utf-8")
+                        parts.append(types.Part(text=f"Uploaded file: {file_name}"))
+                        parts.append(types.Part(text=encoded_content))
+                    content = types.Content(role="user", parts=parts)
+                    final_response_text = "Agent did not produce a final response."
+                    if hasattr(runner, "run_async"):
+                        async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=content):
+                            if event.is_final_response() and event.content and event.content.parts:
+                                final_response_text = event.content.parts[0].text
+                    else:
+                        input_str = user_text or ""
+                        from utils.vertex_agent_rest import call_vertex_agent_rest
+                        final_response_text = call_vertex_agent_rest(input_str)
+                    return final_response_text
+                result = asyncio.run(get_agent_response())
+                st.session_state.chat_history.append({'role': 'agent', 'text': result})
+                st.rerun()
+
+    st.info("Refreshing or starting a new analysis will clear previous results and context (memory). Each run is independent.")
 
     async def get_agent_response(uploaded_file, file_type, feature_toggle, narrative_toggle, followup_query):
         user_id = "user1"
@@ -78,43 +177,6 @@ def main():
             )))
         
         content = types.Content(role="user", parts=parts)
-        final_response_text = "Agent did not produce a final response."
-        if hasattr(runner, "run_async"):
-            # Local agent: stream responses
-            async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=content):
-                if event.is_final_response() and event.content and event.content.parts:
-                    final_response_text = event.content.parts[0].text
-        else:
-            # Remote agent: use .query(input=...)
-            input_str = ""
-            for part in parts:
-                if hasattr(part, "text") and part.text is not None:
-                    input_str += part.text + "\n"
-            from utils.vertex_agent_rest import call_vertex_agent_rest
-            final_response_text = call_vertex_agent_rest(input_str)
-        return final_response_text
-
-    if st.button("Run Analysis"):
-        if not uploaded_file and not followup_query:
-            st.warning("Please upload a file or ask a question.")
-        else:
-            logger.info("Run Analysis triggered", feature_toggle=feature_toggle, narrative_toggle=narrative_toggle, followup_query=followup_query)
-            st.info("Running analysis...")
-            with st.spinner("Agent is thinking..."):
-                result = asyncio.run(get_agent_response(uploaded_file, file_type, feature_toggle, narrative_toggle, followup_query))
-            st.success("Analysis complete.")
-            if isinstance(result, dict):
-                if "errors" in result and result["errors"]:
-                    st.error("Agent error: " + "\n".join(result["errors"]))
-                if "tool_calls" in result and result["tool_calls"]:
-                    st.info(f"Tool calls: {result['tool_calls']}")
-                if "text" in result:
-                    st.write(result["text"])
-                elif "raw" in result:
-                    st.write(result["raw"])
-            else:
-                st.write(result)
-
     st.markdown("---")
     st.caption("Built with Streamlit, ADK, and Google Cloud. See README for details.")
 
