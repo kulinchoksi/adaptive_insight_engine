@@ -1,6 +1,6 @@
 # Adaptive Insight Engine (AIE)
 
-AIE is a modular, extensible GenAI multi-agent system built with Google Cloud's Agent Development Kit (ADK), Streamlit, and best-in-class Python libraries. It is designed for rapid prototyping, enterprise-grade deployment, and seamless integration with Google Cloud services (Vertex AI, Agent Engine, Cloud Run, BigQuery, and more).
+AIE is a modular, extensible GenAI multi-agent system built with Google Cloud's Agent Development Kit (ADK), Streamlit, and best-in-class Python libraries. It is designed for rapid prototyping, enterprise-grade deployment, and seamless integration with Google Cloud services (Vertex AI, Agent Engine, Cloud Run, and more).
 
 ---
 
@@ -9,7 +9,7 @@ AIE is a modular, extensible GenAI multi-agent system built with Google Cloud's 
 - **Agents**: Modular Python classes, each with a clear responsibility (see below).
 - **Tools**: Data processing, analysis, and simulation modules, deployable locally or on Cloud Run.
 - **Interfaces**: Web app (Streamlit), REST API (FastAPI), and stubs for MCP/A2A protocols.
-- **Data**: Supports CSV, Excel, BigQuery, APIs, and more.
+- **Data**: Supports CSV, PDF, TEXT.
 - **Cloud Native**: Deployable locally, on Cloud Run, Vertex AI, or any cloud.
 - **Logging & Traceability**: Structured logging and ExplanationTracerAgent for full auditability.
 
@@ -37,7 +37,7 @@ adaptive_insight_engine/
 
 - **UserInteractionAgent**: Orchestrates user interactions, manages UI/API, validates inputs, and initiates workflows.
 - **WorkflowOrchestratorAgent**: Manages the sequence of analysis tasks based on user selections.
-- **DataIngestionAgent**: Handles data intake, cleaning, and storage (GCS, BigQuery, etc.).
+- **DataIngestionAgent**: Handles data intake, cleaning, and storage (CSV, PDF, TEXT).
 - **ExternalContextAgent**: Fetches and merges external public data (APIs, public datasets).
 - **CoreAnalysisAgent**: Performs core data analysis and correlation.
 - **QueryUnderstandingAgent**: Interprets user follow-up queries using GenAI (Gemini/Vertex AI).
@@ -52,7 +52,7 @@ adaptive_insight_engine/
 - **Streamlit Web App**: Interactive UI for file upload, parameter selection, and results.
 - **REST API**: All workflows accessible via FastAPI endpoints.
 - **Extensible Protocols**: Stubs for MCP and A2A for future multi-agent interoperability.
-- **Cloud Integration**: Native support for Google Cloud Storage, BigQuery, Vertex AI, and more.
+- **Cloud Integration**: Native support for Google Cloud Storage, Vertex AI, and more.
 - **Best-in-Class Libraries**: pandas, numpy, scikit-learn, statsmodels, google-cloud-*, structlog, etc.
 - **Structured Logging**: All agent actions and data flows are logged for monitoring and evaluation.
 - **Deployment Ready**: Dockerized, with scripts for local and cloud deployment.

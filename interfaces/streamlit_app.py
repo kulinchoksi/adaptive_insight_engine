@@ -34,17 +34,29 @@ def main():
     logger = structlog.get_logger("StreamlitApp")
     st.set_page_config(page_title="Adaptive Insight Engine", layout="wide")
     st.title("Adaptive Insight Engine (AIE)")
-    st.write("A modular, extensible GenAI multi-agent system.")
+    st.write("A modular, extensible GenAI multi-agent Data Analysissystem.")
+    # Hide Streamlit's default file uploader message
+    st.markdown('''<style>
+    .element-container:has(.stFileUploader) label ~ div > div > div[data-testid="stFileUploaderDropzone"] + div {
+        display: none !important;
+    }
+    .custom-upload-caption {
+        color: #666;
+        font-size: 0.9em;
+        margin-top: -10px;
+        margin-bottom: 10px;
+    }
+    </style>''', unsafe_allow_html=True)
 
-    st.markdown("""
-    ### How to use this app
-    - **Upload a file** (CSV, Excel, PDF), **enter a text query**, or **both**.
-    - Example 1: *Upload a sales.csv file and click Run Analysis to get sales insights.*
-    - Example 2: *Enter 'Analyze quarterly revenue trends' by providing relevant data in text and click Run Analysis.*
-    - Example 3: *Upload a file and enter 'Focus on Q4 data' for a targeted analysis.*
-    - **Analysis will only start when you provide clear, valid input.**
-    - If your input is unclear or missing, you'll see an error and can correct it before proceeding.
-    """)
+    # st.markdown("""
+    # ### How to use this app
+    # - **Upload a file** (CSV, Excel, PDF), **enter a text query**, or **both**.
+    # - Example 1: *Upload a sales.csv file and click Run Analysis to get sales insights.*
+    # - Example 2: *Enter 'Analyze quarterly revenue trends' by providing relevant data in text and click Run Analysis.*
+    # - Example 3: *Upload a file and enter 'Focus on Q4 data' for a targeted analysis.*
+    # - **Analysis will only start when you provide clear, valid input.**
+    # - If your input is unclear or missing, you'll see an error and can correct it before proceeding.
+    # """)
 
     # --- Session State for Chat History ---
     if 'chat_history' not in st.session_state:
@@ -56,9 +68,7 @@ def main():
     st.sidebar.header("Configuration")
     feature_toggle = st.sidebar.checkbox("Enable Contextualytics (external data enrichment)")
     narrative_toggle = st.sidebar.checkbox("Enable NarrativeAI (storytelling)")
-    if st.sidebar.button("New Analysis"):
-        st.session_state.clear()
-        st.experimental_rerun()
+    # 'New Analysis' button moved to input form
 
     # --- Main Chat Area ---
     st.markdown("#### Conversation")
@@ -78,8 +88,20 @@ def main():
         with cols[0]:
             user_input = st.text_area("Enter your query or context (optional)", height=80, key="user_input")
         with cols[1]:
-            uploaded_file = st.file_uploader("Upload a file (optional)", type=["csv", "xlsx", "xls", "pdf", "txt"], key="file_uploader")
-        submitted = st.form_submit_button("Send")
+            uploaded_file = st.file_uploader("Upload a file (optional)", type=["csv"], key="file_uploader")
+            st.markdown('<div class="custom-upload-caption">Limit 2 MB per file • CSV</div>', unsafe_allow_html=True)
+        # Disable 'Send' if last message is from agent (i.e., analysis complete)
+        disable_send = False
+        if st.session_state.chat_history and st.session_state.chat_history[-1]['role'] == 'agent':
+            disable_send = True
+        send_col, new_col = st.columns([1, 1])
+        with send_col:
+            submitted = st.form_submit_button("Send", disabled=disable_send)
+        with new_col:
+            new_analysis_clicked = st.form_submit_button("New Analysis")
+        if new_analysis_clicked:
+            st.session_state.clear()
+            st.rerun()
 
     # --- Validation ---
     input_is_valid = bool(user_input.strip() or uploaded_file)
@@ -103,7 +125,7 @@ def main():
         last_msg = st.session_state.chat_history[-1]
         # Only run agent if not already answered
         if len(st.session_state.chat_history) < 2 or st.session_state.chat_history[-2]['role'] != 'agent':
-            with st.spinner("Agent is thinking..."):
+            with st.spinner("Agent is analysing..."):
                 # Prepare input
                 user_text = last_msg['text']
                 file_bytes = last_msg.get('file_bytes')
@@ -124,11 +146,11 @@ def main():
                         # Map file extension to supported MIME type
                         mime_type_map = {
                             "csv": "text/csv",
-                            "pdf": "application/pdf",
-                            "txt": "text/plain"
+                            # "pdf": "application/pdf",
+                            # "txt": "text/plain"
                         }
                         if file_type not in mime_type_map:
-                            st.error(f"Unsupported file type: .{file_type}. Only CSV, PDF, and TXT files are supported.")
+                            st.error(f"Unsupported file type: .{file_type}. Only CSV files are supported.")
                             return  # Prevent agent call
                         parts.append(types.Part(text=f"Uploaded file: {file_name}"))
                         parts.append(types.Part(

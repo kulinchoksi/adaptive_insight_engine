@@ -1,6 +1,7 @@
 import os
 from google.adk.agents import Agent
 from .prompts import return_instructions_data_ingestion
+from ..core_analysis.data_tools import adk_data_analyzer
 from .tools import parse_uploaded_file, validate_dataframe
 from adaptive_insight_engine.tools import ingest_data
 from utils import agent_log_tracer
@@ -12,9 +13,11 @@ data_ingestion_agent = Agent(
     name="data_ingestion_agent",
     instruction=return_instructions_data_ingestion(),
     tools=[
-        parse_uploaded_file,    # Tool: Parse uploaded files (CSV, Excel)
-        validate_dataframe      # Tool: Validate and summarize dataframe
+        adk_data_analyzer,
+        # parse_uploaded_file,    # Tool: Parse uploaded files (CSV, Excel)
+        # validate_dataframe      # Tool: Validate and summarize dataframe
     ],
+    output_key="extracted_content",
     before_model_callback=agent_log_tracer.before_model_callback,
     after_model_callback=agent_log_tracer.after_model_callback,
     before_agent_callback=agent_log_tracer.before_agent_callback,

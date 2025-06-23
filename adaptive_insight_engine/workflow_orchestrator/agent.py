@@ -18,7 +18,7 @@ workflow_orchestrator_agent = SequentialAgent(
     name="workflow_orchestrator_agent",
     description="You are a sequential agent, You have to invoke each agents one by one, and then provide the final output.",
     sub_agents=[
-        # data_ingestion_agent,
+        data_ingestion_agent,
         core_analysis_agent
     ],
     before_agent_callback=agent_log_tracer.before_agent_callback,

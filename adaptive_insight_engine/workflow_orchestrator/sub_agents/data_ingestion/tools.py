@@ -19,20 +19,24 @@ def parse_uploaded_file(file_content: str, file_name: str) -> dict:
         # Try base64 decode first
         try:
             file_bytes = base64.b64decode(file_content)
-            if file_name.endswith('.csv'):
+            file_ext = file_name.split('.')[-1].lower()
+            if file_ext == "csv":
                 df = pd.read_csv(io.BytesIO(file_bytes))
-            elif file_name.endswith('.xlsx') or file_name.endswith('.xls'):
-                df = pd.read_excel(io.BytesIO(file_bytes))
-            elif file_name.endswith('.txt'):
+            elif file_ext == "txt":
                 df = pd.read_csv(io.BytesIO(file_bytes))
+            elif file_ext == "pdf":
+                # PDF parsing logic can be added here
+                pass
             else:
-                raise ValueError("Unsupported file type.")
+                raise ValueError(f"Unsupported file type: {file_ext}")
         except Exception:
             # Fallback: treat as plain text
-            if file_name.endswith('.csv') or file_name.endswith('.txt'):
+            file_ext = file_name.split('.')[-1].lower()
+            if file_ext == "csv" or file_ext == "txt":
                 df = pd.read_csv(io.StringIO(file_content))
-            elif file_name.endswith('.xlsx') or file_name.endswith('.xls'):
-                df = pd.read_excel(io.StringIO(file_content))
+            elif file_ext == "pdf":
+                # PDF parsing logic can be added here
+                pass
             else:
                 raise ValueError("Unsupported file type or invalid encoding.")
         import numpy as np
