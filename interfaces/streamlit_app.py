@@ -4,6 +4,10 @@ import asyncio
 import structlog
 from dotenv import load_dotenv
 from google.genai import types
+
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from utils.logger import configure_logging
 from adaptive_insight_engine.agent import workflow_orchestrator_agent
 from google.adk.runners import Runner
@@ -58,7 +62,7 @@ def main():
     narrative_toggle = st.sidebar.checkbox("Enable NarrativeAI (storytelling)")
     if st.sidebar.button("New Analysis"):
         st.session_state.clear()
-        st.experimental_rerun()
+        st.rerun()
 
     # --- Main Chat Area ---
     st.markdown("#### Conversation")
@@ -131,9 +135,15 @@ def main():
                             st.error(f"Unsupported file type: .{file_type}. Only CSV, PDF, and TXT files are supported.")
                             return  # Prevent agent call
                         parts.append(types.Part(text=f"Uploaded file: {file_name}"))
+                        # Patch: Always use 'text/csv' for .csv files regardless of browser-provided MIME type
+                        # This is necessary because some browsers (especially on Windows) upload CSVs as 'application/vnd.ms-excel', which Gemini does not support.
+                        if file_type == "csv":
+                            mime_type = "text/csv"
+                        else:
+                            mime_type = mime_type_map[file_type]
                         parts.append(types.Part(
                             inline_data=types.Blob(
-                                mime_type=mime_type_map[file_type],
+                                mime_type=mime_type,
                                 data=file_bytes
                             )
                         ))

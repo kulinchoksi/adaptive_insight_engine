@@ -123,7 +123,12 @@ async def analyze(
                     message=f"Unsupported file type: .{ext}. Only CSV, PDF, and TXT files are supported."
                 ).model_dump(),
             )
-        mime_type = mime_type_map[ext]
+        # Patch: Always use 'text/csv' for .csv files regardless of browser-provided MIME type
+        # This is necessary because some browsers (especially on Windows) upload CSVs as 'application/vnd.ms-excel', which Gemini does not support.
+        if ext == "csv":
+            mime_type = "text/csv"
+        else:
+            mime_type = mime_type_map[ext]
         parts.append(Part.from_text(text=f"Uploaded file: {file.filename}"))
         parts.append(Part(
             inline_data=Blob(

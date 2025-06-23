@@ -1,0 +1,57 @@
+Adaptive Insight Engine
+
+Deployment steps:
+
+Pre=requisite:
+Google cloud CLI is set up with authentication and default project setup.
+> gcloud auth application-default login
+
+1) Update requirement.txt
+Go to project directory root:
+> uv pip install google-adk[extensions] (example to add new package through poetry)
+> poetry export -f requirements.txt --output requirements.txt --without-hashes
+
+2) Build wheel file
+Go to project directory root:
+> poetry build --format=wheel --output=deployment
+
+3) Deploy Agent Engine including creating Bucket
+Go to project directory root:
+> cd deployment
+> python deploy.py --create
+
+4) Deploy Streamlit App
+Go to project directory root:
+> rename Procfile_streamlit Procfile
+> gcloud run deploy aie-streamlit --source=. --region=us-central1 --allow-unauthenticated --set-env-vars="RESOURCE_ID=<resource_id>,PYTHONPATH=/workspace,AGENT_BACKEND=vertexai,GOOGLE_CLOUD_PROJECT=adk-gcp-hackathon,GOOGLE_CLOUD_LOCATION=us-central1,GOOGLE_CLOUD_STORAGE_BUCKET=adaptive-insight-engine,PROJECT_ID=adk-gcp-hackathon,LOCATION=us-central1"
+> rename Procfile Procfile_streamlit
+
+5) Deploy REST API
+Go to project directory root:
+> rename Procfile_rest_api Procfile
+> gcloud run deploy aie-rest_api --source=. --region=us-central1 --allow-unauthenticated --set-env-vars="RESOURCE_ID=<resource_id>,PYTHONPATH=/workspace,AGENT_BACKEND=vertexai,GOOGLE_CLOUD_PROJECT=adk-gcp-hackathon,GOOGLE_CLOUD_LOCATION=us-central1,GOOGLE_CLOUD_STORAGE_BUCKET=adaptive-insight-engine,PROJECT_ID=adk-gcp-hackathon,LOCATION=us-central1"
+> rename Procfile Procfile_rest_api
+
+Note: Replace <resource_id>, project_id and bucket_id
+
+
+Checkout steps:
+
+1) Clone git repository
+> https://github.com/kulinchoksi/adaptive_insight_engine.git
+
+2) Create python virtual environment
+Go to project directory root:
+> python -m venv .venv
+
+3) Update dependencies
+> .\.venv\Scripts\activate
+> uv pip install -r requirements.txt
+> SET $PYTHONPATH=c:\Users\ckulin\Documents\genai
+
+Running apps:
+
+1) adk web
+2) streamlit run .\interfaces\streamlit_app.py
+3) uvicorn interfaces.rest_api:app --reload --port 8001
+
