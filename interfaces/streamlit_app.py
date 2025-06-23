@@ -4,7 +4,6 @@ import asyncio
 import structlog
 from dotenv import load_dotenv
 from google.genai import types
-from utils.logger import configure_logging
 from adaptive_insight_engine.agent import workflow_orchestrator_agent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
@@ -30,7 +29,6 @@ def get_agent_runner():
 
 def main():
     load_dotenv()
-    configure_logging()
     logger = structlog.get_logger("StreamlitApp")
     st.set_page_config(page_title="Adaptive Insight Engine", layout="wide")
     st.title("Adaptive Insight Engine (AIE)")

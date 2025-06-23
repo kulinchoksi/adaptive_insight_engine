@@ -12,7 +12,6 @@ from google.adk.runners import InMemorySessionService
 from google.genai.types import Blob, Content, Part
 
 from adaptive_insight_engine.agent import workflow_orchestrator_agent
-from utils.logger import configure_logging
 import structlog
 
 # For remote agent access
@@ -35,7 +34,6 @@ def get_agent_runner():
         return Runner(agent=workflow_orchestrator_agent, app_name="AIE", session_service=session_service)
 
 # Configure logging
-configure_logging()
 log = structlog.get_logger()
 
 runner = get_agent_runner()

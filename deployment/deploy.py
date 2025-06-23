@@ -204,11 +204,16 @@ def main(argv: list[str]) -> None:  # pylint: disable=unused-argument
     set_env_var_if_exists(env_vars, "BQ_PROJECT_ID")
     set_env_var_if_exists(env_vars, "BQML_RAG_CORPUS_NAME")
     set_env_var_if_exists(env_vars, "CODE_INTERPRETER_EXTENSION_NAME")
-    env_vars["NL2SQL_METHOD"] = os.getenv("NL2SQL_METHOD")
+    set_env_var_if_exists(env_vars, "NL2SQL_METHOD")
 
     logger.info("Using PROJECT: %s", project_id)
     logger.info("Using LOCATION: %s", location)
     logger.info("Using BUCKET NAME: %s", bucket_name)
+
+    # Log all environment variables
+    logger.info("Environment variables for deployment:")
+    for k, v in env_vars.items():
+        logger.info("  %s = %r", k, v)
 
     # --- Input Validation ---
     if not project_id:
