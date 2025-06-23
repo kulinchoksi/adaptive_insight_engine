@@ -12,7 +12,6 @@ from google.adk.runners import InMemorySessionService
 from google.genai.types import Blob, Content, Part
 
 from adaptive_insight_engine.agent import workflow_orchestrator_agent
-from utils.logger import configure_logging
 import structlog
 
 # For remote agent access
@@ -35,7 +34,6 @@ def get_agent_runner():
         return Runner(agent=workflow_orchestrator_agent, app_name="AIE", session_service=session_service)
 
 # Configure logging
-configure_logging()
 log = structlog.get_logger()
 
 runner = get_agent_runner()
@@ -124,17 +122,13 @@ async def analyze(
                 ).model_dump(),
             )
         mime_type = mime_type_map[ext]
-        import base64
-        if ext in ("csv", "pdf", "xlsx", "xls"):
-            encoded_content = base64.b64encode(file_content).decode("utf-8")
-        elif ext == "txt":
-            # Assume text file is utf-8 encoded
-            encoded_content = file_content.decode("utf-8")
-        else:
-            encoded_content = base64.b64encode(file_content).decode("utf-8")
-        # Only send the base64-encoded content as a text part for the agent's tool
         parts.append(Part.from_text(text=f"Uploaded file: {file.filename}"))
-        parts.append(Part.from_text(text=encoded_content))
+        parts.append(Part(
+            inline_data=Blob(
+                mime_type=mime_type,
+                data=file_content
+            )
+        ))
     content = Content(parts=parts)
 
     # --- Create Session (local only) ---

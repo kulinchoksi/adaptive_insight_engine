@@ -4,6 +4,7 @@ import os
 from google.adk.agents import Agent
 from .prompts import return_instructions_simulation
 from adaptive_insight_engine.tools import run_simulation
+from utils import agent_log_tracer
 
 class SimulationAgent:
     """
@@ -23,9 +24,15 @@ class SimulationAgent:
         }
 
 simulation_agent = Agent(
-    model=os.getenv("SIMULATION_AGENT_MODEL", "gemini-2.0-pro"),
+    model=os.getenv("SIMULATION_AGENT_MODEL", "gemini-2.0-flash-lite-001"),
     name="simulation_agent",
     instruction=return_instructions_simulation(),
     tools=[run_simulation],
+    before_model_callback=agent_log_tracer.before_model_callback,
+    after_model_callback=agent_log_tracer.after_model_callback,
+    before_agent_callback=agent_log_tracer.before_agent_callback,
+    after_agent_callback=agent_log_tracer.after_agent_callback,
+    before_tool_callback=agent_log_tracer.before_tool_modifier,
+    after_tool_callback=agent_log_tracer.after_too_callback,
     # Optionally add before_agent_callback, generate_content_config, etc.
 ) 
