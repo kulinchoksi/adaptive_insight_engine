@@ -44,6 +44,6 @@ workflow_orchestrator_agent = SequentialAgent(
 #     before_agent_callback=agent_log_tracer.before_agent_callback,
 #     after_agent_callback=agent_log_tracer.after_agent_callback,
 #     before_tool_callback=agent_log_tracer.before_tool_modifier,
-#     after_tool_callback=agent_log_tracer.after_too_callback,
+#     after_tool_callback=agent_log_tracer.after_tool_callback,
 #     # No tools: rely on sub-agents for orchestration
 # )

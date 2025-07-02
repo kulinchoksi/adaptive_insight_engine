@@ -140,3 +140,17 @@ def after_model_callback(
     agent_name = callback_context.agent_name
     print(f"\n[---Callback-LLM---] After model call for agent: {agent_name} llm response: {llm_response.content}\n")
     return None  # Nothing to modify
+
+
+# Create a class to group all the tracer functions
+class AgentLogTracer:
+    def __init__(self):
+        self.before_tool_modifier = before_tool_modifier
+        self.after_tool_callback = after_too_callback  # Note: after_too_callback is the correct function name (with two 'o's)
+        self.before_agent_callback = before_agent_callback
+        self.after_agent_callback = after_agent_callback
+        self.before_model_callback = before_model_callback
+        self.after_model_callback = after_model_callback
+
+# Create an instance to be imported
+agent_log_tracer = AgentLogTracer()

@@ -19,7 +19,7 @@ import os
 
 import vertexai
 from absl import app, flags
-from adaptive_insight_engine.agent import root_agent
+from aie_agents.workflow_orchestrator.agent import workflow_orchestrator_agent as root_agent
 from dotenv import load_dotenv
 from google.api_core import exceptions as google_exceptions
 from google.cloud import storage

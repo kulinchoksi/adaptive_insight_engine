@@ -21,7 +21,7 @@ def orchestrate_workflow(
     try:
         # 1. Data ingestion
         if file:
-            from adaptive_insight_engine.workflow_orchestrator.sub_agents.data_ingestion.tools import parse_uploaded_file
+            from aie_agents.workflow_orchestrator.sub_agents.data_ingestion.tools import parse_uploaded_file
             import base64
             # Try to detect file name (if possible)
             file_name = getattr(file, 'name', 'uploaded.csv') if hasattr(file, 'name') else 'uploaded.csv'

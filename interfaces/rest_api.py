@@ -11,7 +11,7 @@ from google.adk.runners import Runner
 from google.adk.runners import InMemorySessionService
 from google.genai.types import Blob, Content, Part
 
-from adaptive_insight_engine.agent import workflow_orchestrator_agent
+from aie_agents.agent import workflow_orchestrator_agent
 import structlog
 
 # For remote agent access

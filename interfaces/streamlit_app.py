@@ -4,7 +4,7 @@ import asyncio
 import structlog
 from dotenv import load_dotenv
 from google.genai import types
-from adaptive_insight_engine.agent import workflow_orchestrator_agent
+from aie_agents.agent import workflow_orchestrator_agent
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 

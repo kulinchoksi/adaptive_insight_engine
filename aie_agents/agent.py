@@ -1,5 +1,5 @@
 import os
-from adaptive_insight_engine.workflow_orchestrator.agent import workflow_orchestrator_agent
+from aie_agents.workflow_orchestrator.agent import workflow_orchestrator_agent
 
 # Alias for ADK compatibility
 root_agent = workflow_orchestrator_agent
